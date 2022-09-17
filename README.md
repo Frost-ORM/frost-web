@@ -1,13 +1,13 @@
-# What is [Frost](https://frost.sami-mishal.online/)?
+# What is [Frost](https://frost-orm.github.io/frost-web-docs/)?
 <!-- <div style="margin: auto 12rem; background-color: #236bfe; padding: 2rem; border-radius: 2rem">
-<div style="border-radius: 100%; background-color: white; height: 13rem;width: 13rem; align-items: center; justify-content: center; display: flex; margin: auto; "><img style="height: 12rem; width: 12rem; " src="https://frost.sami-mishal.online/img/logo.svg"/></div></div> -->
-<img src="https://frost.sami-mishal.online/img/icon_small.png"/>
+<div style="border-radius: 100%; background-color: white; height: 13rem;width: 13rem; align-items: center; justify-content: center; display: flex; margin: auto; "><img style="height: 12rem; width: 12rem; " src="https://frost-orm.github.io/frost-web-docs/img/logo.svg"/></div></div> -->
+<img src="https://frost-orm.github.io/frost-web-docs/img/icon_small.png"/>
 
-[Frost](https://frost.sami-mishal.online/) is an [ORM](https://en.wikipedia.org/wiki/Object%E2%80%93relational_mapping) (Object Relational Mapping) Library that utilizes Typescript Decorators to simplify working with [Firebases's Realtime DB](https://firebase.google.com/products/realtime-database).
+[Frost](https://frost-orm.github.io/frost-web-docs/) is an [ORM](https://en.wikipedia.org/wiki/Object%E2%80%93relational_mapping) (Object Relational Mapping) Library that utilizes Typescript Decorators to simplify working with [Firebases's Realtime DB](https://firebase.google.com/products/realtime-database).
 Frost Focuses on the relations between the database nodes and generates all the needed code for the developer to fetch these nodes with the ones related to them.
 It also utilizes [ReactiveX](https://reactivex.io/) to provide the developer with observables that listen to the changes on theses nodes. And Of course provide the developer with the utilities to preform basic operations on the database.
 
-[Full Documentation](https://frost.sami-mishal.online/docs)
+[Full Documentation](https://frost-orm.github.io/frost-web-docs/1.0.3/docs/intro)
 
 ## Getting Started
 
@@ -15,11 +15,10 @@ Before we head to defining the classes and the relations between them, we need t
 
 ### What you'll need
 
-- Decorators Support in your project. if you don't have it already **[follow this guide](https://frost.sami-mishal.online/docs/guides/decorators-support)**
+- Decorators Support in your project. if you don't have it already **[follow this guide](https://frost-orm.github.io/frost-web-docs/1.0.3/docs/guides/decorators-support)**
 - Firebase Database credentials to initialize the database client.
 
-Finally you can follow the [installation guide](https://frost.sami-mishal.online/docs/guides/installation) and then go through the documentation or follow the [quick start guide](/docs/guides/quick-start)
-
+Finally you can follow the [installation guide](https://frost-orm.github.io/frost-web-docs/1.0.3/docs/guides/installation) and then go through the documentation or follow the [quick start guide](https://frost-orm.github.io/frost-web-docs/1.0.3/docs/guides/quick-start)
 ## Installing the package
 
 ```bash
@@ -28,8 +27,8 @@ npm install @frost-orm/frost-web
 
 ## Setup
 
-- Pass the firebase configuration object to [Frost.initialize](/api/classes/Frost#initialize) function instead of `initializeApp` function from firebase.
-- Pass a map of the APIs you've defined (this explained in [Create A Node](/docs/fundamentals/create-a-node) section) as the second parameter. the key for each API should be the name that you want to access it by later on.
+- Pass the firebase configuration object to [Frost.initialize](https://frost-orm.github.io/frost-web-docs/1.0.3/api/classes/Frost#initialize) function instead of `initializeApp` function from firebase.
+- Pass a map of the APIs you've defined (this explained in [Create A Node](https://frost-orm.github.io/frost-web-docs/1.0.3/docs/fundamentals/create-a-node) section) as the second parameter. the key for each API should be the name that you want to access it by later on.
 - This will initialize the Firebase Instance and Frost Instance along with the APIs.
 - The initialize function will return an object with the properties:
   - firebaseApp: The instance returned by `initializeApp` function from Firebase Web SDK 9.

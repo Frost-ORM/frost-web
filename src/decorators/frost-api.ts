@@ -23,18 +23,18 @@ import {
 	switchMap,
 	throwError,
 } from "rxjs";
+import { Frost } from "../frost";
 import { join } from "../helpers/join";
 import { observable } from "../helpers/observable";
 import { resolve } from "../helpers/resolve";
 import { slashToDotJoin } from "../helpers/slashToDotJoin";
 import { trueOrNull } from "../helpers/trueOrNull";
 import { valueOrNull } from "../helpers/valueOrNull";
-import { Frost } from "../frost";
+import { ClassOf } from "../types-helpers/constructor";
 import { FrostObject, IFrostObject, KeysOfEntriesWithRelation } from "./frost-object";
 import { ALL_RELATIONS, NodeRelationsSymbol, Relations, RelationTypes, __frost__relations } from "./relation";
-import { ClassOf } from "../types-helpers/constructor"
 
-export type IFrostApi = ClassOf<FrostApi<FrostObject>>
+export type IFrostApi = ClassOf<FrostApi<FrostObject>>;
 export abstract class FrostApi<T extends FrostObject> {
 	/**
 	 *
@@ -246,7 +246,7 @@ export abstract class FrostApi<T extends FrostObject> {
 	 * @returns an Observable of the query results with related objects that were given in the include parameter
 	 */
 	observeMany(
-		options: {
+		options?: {
 			include?: Include<T>;
 			listenToNestedChanges?: ListenToNestedChanges;
 			debounceDuration?: number;
@@ -257,7 +257,8 @@ export abstract class FrostApi<T extends FrostObject> {
 		let listenToNestedChanges = Object.hasOwn(options ?? {}, "listenToNestedChanges")
 			? options.listenToNestedChanges
 			: false;
-		let debounceDuration = options.debounceDuration ?? 500;
+			// console.log({listenToNestedChanges})
+		let debounceDuration = options?.debounceDuration ?? 500;
 		try {
 			return observable(query(ref(this.db, this.collectionPath), ...queryConstraints)).pipe(
 				switchMap((snapshot) => {
@@ -271,7 +272,9 @@ export abstract class FrostApi<T extends FrostObject> {
 							})
 						);
 					} else {
-						return throwError(() => new Error("Snapshot Doesn't exits"));
+						// return throwError(() => new Error("Snapshot Doesn't exits"));
+						console.error( new Error("Snapshot Doesn't exits"));
+						return of([]);
 					}
 				}),
 				debounceTime(debounceDuration)
@@ -309,7 +312,9 @@ export abstract class FrostApi<T extends FrostObject> {
 						}
 						return from(this.getRelated(value, include));
 					} else {
-						return throwError(() => new Error("Snapshot Doesn't exits"));
+						// return throwError(() => new Error("Snapshot Doesn't exits"));
+						console.error(new Error("Snapshot Doesn't exits"));
+						return of(null)
 					}
 				})
 			);
@@ -412,7 +417,11 @@ export abstract class FrostApi<T extends FrostObject> {
 	 * @param {ListenToNestedChanges} listenToNestedChanges - see {@link ListenToNestedChanges}.
 	 * @returns an Observable of the object instance with related objects that were given in the include parameter
 	 */
-	getRelatedObservable(object: any, include?: Include<T>, listenToNestedChanges?: ListenToNestedChanges): Observable<T> {
+	getRelatedObservable(
+		object: any,
+		include?: Include<T>,
+		listenToNestedChanges?: ListenToNestedChanges
+	): Observable<T> {
 		let relations = this.getAllRelations({ keys: include ?? [] });
 		let value = object instanceof FrostObject ? object.flatten() : object;
 		let id = object.id;
@@ -553,7 +562,11 @@ export abstract class FrostApi<T extends FrostObject> {
 	 * @param disconnect - see {@link DisconnectOptions}.
 	 * @returns an object containing the update map
 	 */
-	async getUpdateMap(object: T, connect?: ConnectOptions<T>, disconnect?: DisconnectOptions<T>): Promise<{ map: any }> {
+	async getUpdateMap(
+		object: T,
+		connect?: ConnectOptions<T>,
+		disconnect?: DisconnectOptions<T>
+	): Promise<{ map: any }> {
 		let data = JSON.parse(JSON.stringify(object));
 		if (!data.id) throw new Error("Can't add child to node: " + this.collectionPath);
 
@@ -587,71 +600,20 @@ export abstract class FrostApi<T extends FrostObject> {
 					switch (rel.relationType) {
 						case RelationTypes.ONE_TO_ONE:
 							let connectedID = map[rel.localField];
-							if (connectedID === true || connectedID === 'all') {
-								let temp = object.getConnectedKeys(rel.localField)?.[0];
-								if (!temp) continue;
-								connectedID = temp;
-							}
-							if (typeof connectedID === "string") {
-								_.set(
-									data,
-									slashToDotJoin(rel.localReference),
-									valueOrNull(operation === "connect", connectedID)
-								);
-								updates[join(rel.foreignCollectionPath, connectedID, rel.foreignReference)] =
-									valueOrNull(operation === "connect", data.id);
-							} else {
-								throw new Error(
-									"connect[" +
-										rel.localField +
-										"] should be a string or `true` in entity (" +
-										rel.sides[0]().name +
-										")"
-								);
-							}
-							break;
-						case RelationTypes.ONE_TO_MANY:
-							// todo add option disconnect all
-							if (rel.isMaster) {
-								let toBeUpdated = map[rel.localField];
-								if (toBeUpdated === "all" || toBeUpdated === true) {
-									toBeUpdated = object.getConnectedKeys(rel.localField) ?? [];
-								}
-								if (Array.isArray(toBeUpdated)) {
-									toBeUpdated.forEach((element) => {
-										_.set(
-											data,
-											slashToDotJoin(rel.localReference, element),
-											trueOrNull(operation === "connect")
-										);
-										updates[join(rel.foreignCollectionPath, element, rel.foreignReference)] =
-											valueOrNull(operation === "connect", data.id);
-									});
-								} else {
-									throw new Error(
-										"connect[" +
-											rel.localField +
-											"] should be an array in entity (" +
-											this.entity.name +
-											")"
-									);
-								}
-							} else {
-								let toBeUpdated = map[rel.localField];
-								if (toBeUpdated === true || connectedID === 'all') {
+							if (connectedID) {
+								if (connectedID === true || connectedID === "all") {
 									let temp = object.getConnectedKeys(rel.localField)?.[0];
 									if (!temp) continue;
-									toBeUpdated = temp;
+									connectedID = temp;
 								}
-								if (typeof toBeUpdated === "string") {
+								if (typeof connectedID === "string") {
 									_.set(
 										data,
 										slashToDotJoin(rel.localReference),
-										valueOrNull(operation === "connect", toBeUpdated)
+										valueOrNull(operation === "connect", connectedID)
 									);
-									updates[
-										join(rel.foreignCollectionPath, toBeUpdated, rel.foreignReference, data.id)
-									] = trueOrNull(operation === "connect");
+									updates[join(rel.foreignCollectionPath, connectedID, rel.foreignReference)] =
+										valueOrNull(operation === "connect", data.id);
 								} else {
 									throw new Error(
 										"connect[" +
@@ -662,34 +624,93 @@ export abstract class FrostApi<T extends FrostObject> {
 									);
 								}
 							}
+							break;
+						case RelationTypes.ONE_TO_MANY:
+							// todo add option disconnect all
+							if (rel.isMaster) {
+								let toBeUpdated = map[rel.localField];
+								if (toBeUpdated) {
+									if (toBeUpdated === "all" || toBeUpdated === true) {
+										toBeUpdated = object.getConnectedKeys(rel.localField) ?? [];
+									}
+									if (Array.isArray(toBeUpdated)) {
+										toBeUpdated.forEach((element) => {
+											_.set(
+												data,
+												slashToDotJoin(rel.localReference, element),
+												trueOrNull(operation === "connect")
+											);
+											updates[join(rel.foreignCollectionPath, element, rel.foreignReference)] =
+												valueOrNull(operation === "connect", data.id);
+										});
+									} else {
+										throw new Error(
+											"connect[" +
+												rel.localField +
+												"] should be an array in entity (" +
+												this.entity.name +
+												")"
+										);
+									}
+								}
+							} else {
+								let toBeUpdated = map[rel.localField];
+								if (toBeUpdated) {
+									if (toBeUpdated === true || toBeUpdated === "all") {
+										let temp = object.getConnectedKeys(rel.localField)?.[0];
+										if (!temp) continue;
+										toBeUpdated = temp;
+									}
+									if (typeof toBeUpdated === "string") {
+										_.set(
+											data,
+											slashToDotJoin(rel.localReference),
+											valueOrNull(operation === "connect", toBeUpdated)
+										);
+										updates[
+											join(rel.foreignCollectionPath, toBeUpdated, rel.foreignReference, data.id)
+										] = trueOrNull(operation === "connect");
+									} else {
+										throw new Error(
+											"connect[" +
+												rel.localField +
+												"] should be a string or `true` in entity (" +
+												rel.sides[0]().name +
+												")"
+										);
+									}
+								}
+							}
 
 							break;
 						case RelationTypes.MANY_TO_MANY:
 							{
 								// todo add option disconnect all
 								let toBeUpdated = map[rel.localField];
-								if (toBeUpdated === "all" || toBeUpdated === true) {
-									toBeUpdated = object.getConnectedKeys(rel.localField) ?? [];
-								}
-								if (Array.isArray(toBeUpdated)) {
-									toBeUpdated.forEach((element: string) => {
-										_.set(
-											data,
-											slashToDotJoin(rel.localReference, element),
-											valueOrNull(operation === "connect", { connected: true })
+								if (toBeUpdated) {
+									if (toBeUpdated === "all" || toBeUpdated === true) {
+										toBeUpdated = object.getConnectedKeys(rel.localField) ?? [];
+									}
+									if (Array.isArray(toBeUpdated)) {
+										toBeUpdated.forEach((element: string) => {
+											_.set(
+												data,
+												slashToDotJoin(rel.localReference, element),
+												valueOrNull(operation === "connect", { connected: true })
+											);
+											updates[
+												join(rel.foreignCollectionPath, element, rel.foreignReference, data.id)
+											] = valueOrNull(operation === "connect", { connected: true });
+										});
+									} else {
+										throw new Error(
+											"connect[" +
+												rel.localField +
+												"] should be an array in entity (" +
+												this.entity.name +
+												")"
 										);
-										updates[
-											join(rel.foreignCollectionPath, element, rel.foreignReference, data.id)
-										] = valueOrNull(operation === "connect", { connected: true });
-									});
-								} else {
-									throw new Error(
-										"connect[" +
-											rel.localField +
-											"] should be an array in entity (" +
-											this.entity.name +
-											")"
-									);
+									}
 								}
 							}
 							break;
@@ -799,7 +820,10 @@ export abstract class FrostApi<T extends FrostObject> {
  *```
 
  */
-export type DisconnectOptions<T extends FrostObject> = undefined | "all" | Record<KeysOfEntriesWithRelation<T>, "all" | true | string | string[]>;
+export type DisconnectOptions<T extends FrostObject> =
+	| undefined
+	| "all"
+	| Partial<Record<KeysOfEntriesWithRelation<T>, "all" | true | string | string[]>>;
 
 /**
  * The related instances to connect
@@ -843,7 +867,9 @@ export type DisconnectOptions<T extends FrostObject> = undefined | "all" | Recor
  * }
  * ```
  */
-export type ConnectOptions<T extends FrostObject> = Record<KeysOfEntriesWithRelation<T>, string | string[]> | undefined;
+export type ConnectOptions<T extends FrostObject> =
+	| Partial<Record<KeysOfEntriesWithRelation<T>, string | string[]>>
+	| undefined;
 
 /**
  * an array of the property names with relations that you want to be included in the fetch request.

@@ -1,4 +1,5 @@
 import { Database } from '@firebase/database';
+import { ClassOf } from '../types-helpers/constructor';
 import { FrostApi } from './frost-api';
 import { FrostObject, IFrostObject } from './frost-object';
 
@@ -30,7 +31,7 @@ export function FrostNode<T extends FrostObject, I extends IFrostObject<T>>({
 }: {
     entity: I;
 }) {
-    return function _FrostApi<E extends { new(...args: any[]): FrostApi<T>; }>(
+    return function _FrostApi<E extends ClassOf<FrostApi<T>>>(
         constructor: E
     ) {
         return class extends constructor {

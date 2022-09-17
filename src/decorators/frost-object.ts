@@ -11,7 +11,9 @@ export const PropsSymbol = Symbol.for(SYMBOL_PREFIX + ":props");
 export const RelatedSymbol = Symbol.for(SYMBOL_PREFIX + ":related");
 
 export type Related = Prop & { entity: any };
-export class FrostObject<C = {id?:string}>{
+
+export type FrostObjectBaseType = {id?:string} & Record<any,any>
+export class FrostObject<C extends FrostObjectBaseType = FrostObjectBaseType>{
 	static collectionPath: string;
     /**
      * all FrostObjects should have the id property, you can override it in the derived class 
@@ -36,17 +38,17 @@ export class FrostObject<C = {id?:string}>{
 		relations
 			.map((key) => __frost__relations[key].withSide(this.constructor))
 			.forEach((relation) => {
-				const propertyKey = relation.fields[0];
+				const propertyKey = relation.localField;
 				toBeOmitted.push(propertyKey);
 				let type = relation.sides?.[1]?.();
-				if (args?.[0]?.[propertyKey] && type) {
-					if (relation.relationType === RelationTypes.ONE_TO_ONE) {
-						//@ts-ignore
-						this[propertyKey] = () => new type(args?.[0]?.[propertyKey]);
+				if (data?.[propertyKey] && type) {
+					if (relation.relationType === RelationTypes.ONE_TO_ONE || (relation.relationType === RelationTypes.ONE_TO_MANY && relation.isSlave)) {
+						//@ts-ignores
+						this[propertyKey] = () => new type(data?.[propertyKey]);
 					} else {
 						//@ts-ignore
 						this[propertyKey] = () =>
-							Object.values(args?.[0]?.[propertyKey] ?? {}).map((element) => new type(element));
+							Object.values(data?.[propertyKey] ?? {}).map((element) => new type(element));
 					}
 				}
 			});
@@ -56,6 +58,12 @@ export class FrostObject<C = {id?:string}>{
 		const excluded: string[] = Reflect.getMetadata(ExcludedSymbol, this) ?? [];
 
 		Object.assign(this, { ..._.omit(data, [...excluded, ...toBeOmitted]) });
+		// let final = _.omit(data, [...excluded, ...toBeOmitted])
+		// for (const key in final) {
+		// 	this[key] = final[key]	
+		// }
+		// console.log(this.constructor.name,this,{data,excluded,toBeOmitted,final})
+
 	}
 
 
@@ -183,5 +191,5 @@ export class FrostObject<C = {id?:string}>{
 		return _.omit(data, excluded);
 	}
 }
-export type IFrostObject<T extends FrostObject> = Omit<typeof FrostObject, "new"> & { new (...args: any[]): T };
+export type IFrostObject<T extends FrostObject<T>> = typeof FrostObject & { new (...args: any[]): T };
 export type KeysOfEntriesWithRelation<T extends FrostObject> = Exclude<KeysOfEntriesWithType<T,Function|undefined>,KeysOfEntriesWithType<FrostObject,Function>>
